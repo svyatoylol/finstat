@@ -5,8 +5,8 @@ import (
 	"fmt"
 )
 
-func ExecuteCommand(command string, svc *transaction.Service) {
-	switch command {
+func ExecuteCommand(cmd ParsedCommand, svc *transaction.Service) {
+	switch cmd.Name {
 	case "Add_Incoming":
 		fmt.Println("Executing Add_Incoming command...")
 		// Add your logic for Add_Incoming command here
@@ -17,6 +17,6 @@ func ExecuteCommand(command string, svc *transaction.Service) {
 		fmt.Println("Executing Check_Balance command...")
 		// Add your logic for Check_Balance command here
 	default:
-		fmt.Println("Unknown command:", command)
+		fmt.Println("Unknown command:", cmd.Name)
 	}
 }
