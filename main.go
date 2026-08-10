@@ -2,6 +2,7 @@ package main
 
 import (
 	"fin-stat/commands"
+	"fin-stat/transaction"
 	"fmt"
 )
 
@@ -10,5 +11,8 @@ func main() {
 	fmt.Println("Enter a command:")
 	fmt.Scanln(&command)
 
-	commands.ExecuteCommand(command)
+	repo := transaction.NewMemoryRepository()
+	svc := transaction.NewService(repo)
+
+	commands.ExecuteCommand(command, svc)
 }

@@ -1,8 +1,11 @@
 package commands
 
-import "fmt"
+import (
+	"fin-stat/transaction"
+	"fmt"
+)
 
-func ExecuteCommand(command string) {
+func ExecuteCommand(command string, svc *transaction.Service) {
 	switch command {
 	case "Add_Incoming":
 		fmt.Println("Executing Add_Incoming command...")
