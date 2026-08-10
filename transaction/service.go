@@ -1,5 +1,9 @@
 package transaction
 
+import (
+	"errors"
+)
+
 type Service struct {
 	repo Repository
 }
@@ -14,12 +18,24 @@ func (s *Service) GetBalance() float64 {
 	var balance float64
 
 	for _, t := range s.repo.GetAll() {
-		if t.Type == "incoming" {
+		if t.Type == Incoming {
 			balance += t.Amount
 		}
-		if t.Type == "outgoing" {
+		if t.Type == Outgoing {
 			balance -= t.Amount
 		}
 	}
 	return balance
+}
+
+func (s *Service) AddTransaction(t Transaction) (Transaction, error) {
+	if t.Amount <= 0 {
+		return Transaction{}, errors.New("amount must be positive")
+	}
+	if t.Type != Incoming && t.Type != Outgoing {
+		return Transaction{}, errors.New("invalid transaction type")
+	}
+
+	saved := s.repo.Add(t)
+	return saved, nil
 }

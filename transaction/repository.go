@@ -1,6 +1,6 @@
 package transaction
 
 type Repository interface {
-	Add(Transaction)
+	Add(Transaction) Transaction
 	GetAll() []Transaction
 }
