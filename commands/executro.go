@@ -20,6 +20,10 @@ func ExecuteCommand(cmd ParsedCommand, svc *transaction.Service) {
 		handleListByType(cmd.Args, svc)
 	case "All_By_Category":
 		handleListByCategory(cmd.Args, svc)
+	case "Delete_Transaction":
+		handleDeleteTransaction(cmd.Args, svc)
+	case "Edit_Transaction":
+		handleEditTransaction(cmd.Args, svc)
 	default:
 		fmt.Println("Unknown command:", cmd.Name)
 	}
@@ -126,13 +130,16 @@ func handleEditTransaction(args []string, svc *transaction.Service) {
 		return
 	}
 
-	t := transaction.Transaction{
-		ID:       id,
-		Amount:   amount,
-		Category: args[2],
+	existing, ok := svc.GetByID(id)
+	if !ok {
+		fmt.Println("transaction not found:", id)
+		return
 	}
 
-	updated, err := svc.UpdateTransaction(t)
+	existing.Amount = amount
+	existing.Category = args[2]
+
+	updated, err := svc.UpdateTransaction(existing)
 	if err != nil {
 		fmt.Println("error:", err)
 		return

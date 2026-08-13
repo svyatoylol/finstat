@@ -67,3 +67,7 @@ func (s *Service) UpdateTransaction(t Transaction) (Transaction, error) {
 	}
 	return s.repo.Update(t)
 }
+
+func (s *Service) GetByID(id int) (Transaction, bool) {
+	return s.repo.GetByID(id)
+}
