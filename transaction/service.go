@@ -53,3 +53,17 @@ func (s *Service) GetAllByCategory(category string) []Transaction {
 	}
 	return s.repo.GetFiltered(filter)
 }
+
+func (s *Service) DeleteTransaction(id int) error {
+	return s.repo.Delete(id)
+}
+
+func (s *Service) UpdateTransaction(t Transaction) (Transaction, error) {
+	if t.Amount <= 0 {
+		return Transaction{}, errors.New("amount must be positive")
+	}
+	if t.Type != Incoming && t.Type != Outgoing {
+		return Transaction{}, errors.New("invalid transaction type")
+	}
+	return s.repo.Update(t)
+}

@@ -1,5 +1,7 @@
 package transaction
 
+import "fmt"
+
 type memoryRepository struct {
 	data   []Transaction
 	nextID int
@@ -44,4 +46,24 @@ func (r *memoryRepository) GetFiltered(f Filter) []Transaction {
 		filtered = append(filtered, tx)
 	}
 	return filtered
+}
+
+func (r *memoryRepository) Delete(id int) error {
+	for i, t := range r.data {
+		if t.ID == id {
+			r.data = append(r.data[:i], r.data[i+1:]...)
+			return nil
+		}
+	}
+	return fmt.Errorf("transaction with id %d not found", id)
+}
+
+func (r *memoryRepository) Update(t Transaction) (Transaction, error) {
+	for i, tx := range r.data {
+		if tx.ID == t.ID {
+			r.data[i] = t
+			return t, nil
+		}
+	}
+	return Transaction{}, fmt.Errorf("transaction with id %d not found", t.ID)
 }

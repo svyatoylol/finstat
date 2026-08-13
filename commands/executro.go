@@ -87,3 +87,56 @@ func printTransactions(txs []transaction.Transaction) {
 		fmt.Printf("#%d  %-8s  %.2f  %s\n", t.ID, t.Type, t.Amount, t.Category)
 	}
 }
+
+func handleDeleteTransaction(args []string, svc *transaction.Service) {
+	if len(args) < 1 {
+		fmt.Println("usage: Delete_Transaction <id>")
+		return
+	}
+
+	id, err := strconv.Atoi(args[0])
+	if err != nil {
+		fmt.Println("Invalid id:", args[0])
+		return
+	}
+
+	if err := svc.DeleteTransaction(id); err != nil {
+		fmt.Println("error:", err)
+		return
+	}
+
+	fmt.Println("Deleted transaction #", id)
+}
+
+func handleEditTransaction(args []string, svc *transaction.Service) {
+	if len(args) < 3 {
+		fmt.Println("usage: Edit_Transaction <id> <amount> <category>")
+		return
+	}
+
+	id, err := strconv.Atoi(args[0])
+	if err != nil {
+		fmt.Println("invalid id:", args[0])
+		return
+	}
+
+	amount, err := strconv.ParseFloat(args[1], 64)
+	if err != nil {
+		fmt.Println("invalid amount:", args[1])
+		return
+	}
+
+	t := transaction.Transaction{
+		ID:       id,
+		Amount:   amount,
+		Category: args[2],
+	}
+
+	updated, err := svc.UpdateTransaction(t)
+	if err != nil {
+		fmt.Println("error:", err)
+		return
+	}
+
+	fmt.Println("Updated transaction #", updated.ID)
+}
