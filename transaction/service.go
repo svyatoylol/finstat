@@ -39,3 +39,17 @@ func (s *Service) AddTransaction(t Transaction) (Transaction, error) {
 	saved := s.repo.Add(t)
 	return saved, nil
 }
+
+func (s *Service) GetAllByType(tType TransactionType) []Transaction {
+	filter := Filter{
+		Type: &tType,
+	}
+	return s.repo.GetFiltered(filter)
+}
+
+func (s *Service) GetAllByCategory(category string) []Transaction {
+	filter := Filter{
+		Category: &category,
+	}
+	return s.repo.GetFiltered(filter)
+}
