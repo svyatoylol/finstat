@@ -21,9 +21,9 @@ func (r *memoryRepository) Add(t Transaction) Transaction {
 	return t
 }
 
-func (r *memoryRepository) GetByID(id int) (Transaction, bool) {
+func (r *memoryRepository) GetByID(userID int, id int) (Transaction, bool) {
 	for _, t := range r.data {
-		if t.ID == id {
+		if t.ID == id && t.UserID == userID {
 			return t, true
 		}
 	}
@@ -47,9 +47,9 @@ func (r *memoryRepository) GetFiltered(f Filter) []Transaction {
 	return filtered
 }
 
-func (r *memoryRepository) Delete(id int) error {
+func (r *memoryRepository) Delete(userid int, id int) error {
 	for i, t := range r.data {
-		if t.ID == id {
+		if t.ID == id && t.UserID == userid {
 			r.data = append(r.data[:i], r.data[i+1:]...)
 			return nil
 		}
@@ -57,9 +57,10 @@ func (r *memoryRepository) Delete(id int) error {
 	return fmt.Errorf("transaction with id %d not found", id)
 }
 
-func (r *memoryRepository) Update(t Transaction) (Transaction, error) {
+func (r *memoryRepository) Update(userID int, t Transaction) (Transaction, error) {
 	for i, tx := range r.data {
-		if tx.ID == t.ID {
+		if tx.ID == t.ID && tx.UserID == userID {
+			t.UserID = userID
 			r.data[i] = t
 			return t, nil
 		}

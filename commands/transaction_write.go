@@ -34,7 +34,7 @@ func HandeleAddTransaction(cmd ParsedCommand, txType transaction.TransactionType
 	fmt.Println("Added transaction #", saved.ID)
 }
 
-func handleDeleteTransaction(args []string, svc *transaction.Service) {
+func handleDeleteTransaction(args []string, svc *transaction.Service, sess *Session) {
 	if len(args) < 1 {
 		fmt.Println("usage: Delete_Transaction <id>")
 		return
@@ -46,7 +46,7 @@ func handleDeleteTransaction(args []string, svc *transaction.Service) {
 		return
 	}
 
-	if err := svc.DeleteTransaction(id); err != nil {
+	if err := svc.DeleteTransaction(sess.UserID, id); err != nil {
 		fmt.Println("error:", err)
 		return
 	}
@@ -54,7 +54,7 @@ func handleDeleteTransaction(args []string, svc *transaction.Service) {
 	fmt.Println("Deleted transaction #", id)
 }
 
-func handleEditTransaction(args []string, svc *transaction.Service) {
+func handleEditTransaction(args []string, svc *transaction.Service, sess *Session) {
 	if len(args) < 3 {
 		fmt.Println("usage: Edit_Transaction <id> <amount> <category>")
 		return
@@ -72,7 +72,7 @@ func handleEditTransaction(args []string, svc *transaction.Service) {
 		return
 	}
 
-	existing, ok := svc.GetByID(id)
+	existing, ok := svc.GetByID(sess.UserID, id)
 	if !ok {
 		fmt.Println("transaction not found:", id)
 		return
@@ -81,7 +81,7 @@ func handleEditTransaction(args []string, svc *transaction.Service) {
 	existing.Amount = amount
 	existing.Category = args[2]
 
-	updated, err := svc.UpdateTransaction(existing)
+	updated, err := svc.UpdateTransaction(sess.UserID, existing)
 	if err != nil {
 		fmt.Println("error:", err)
 		return

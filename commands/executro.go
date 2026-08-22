@@ -30,9 +30,9 @@ func ExecuteCommand(cmd ParsedCommand, svc *transaction.Service, sess *Session) 
 	case "All_By_Category":
 		handleListByCategory(cmd.Args, svc, sess)
 	case "Delete_Transaction":
-		handleDeleteTransaction(cmd.Args, svc)
+		handleDeleteTransaction(cmd.Args, svc, sess)
 	case "Edit_Transaction":
-		handleEditTransaction(cmd.Args, svc)
+		handleEditTransaction(cmd.Args, svc, sess)
 	default:
 		fmt.Println("Unknown command:", cmd.Name)
 	}
