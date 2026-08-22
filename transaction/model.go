@@ -9,6 +9,7 @@ const (
 
 type Transaction struct {
 	ID       int
+	UserID   int
 	Type     TransactionType
 	Amount   float64
 	Category string

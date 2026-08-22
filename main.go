@@ -11,6 +11,7 @@ import (
 func main() {
 	repo := transaction.NewMemoryRepository()
 	svc := transaction.NewService(repo)
+	sess := commands.NewSession(0)
 
 	scanner := bufio.NewScanner(os.Stdin)
 	fmt.Println("Enter commands (type 'exit' to quit):")
@@ -20,7 +21,7 @@ func main() {
 		if cmd.Name == "exit" {
 			break
 		}
-		commands.ExecuteCommand(cmd, svc)
+		commands.ExecuteCommand(cmd, svc, sess)
 		fmt.Println("Enter a command:")
 	}
 }

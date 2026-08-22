@@ -21,10 +21,6 @@ func (r *memoryRepository) Add(t Transaction) Transaction {
 	return t
 }
 
-func (r *memoryRepository) GetAll() []Transaction {
-	return r.data
-}
-
 func (r *memoryRepository) GetByID(id int) (Transaction, bool) {
 	for _, t := range r.data {
 		if t.ID == id {
@@ -37,6 +33,9 @@ func (r *memoryRepository) GetByID(id int) (Transaction, bool) {
 func (r *memoryRepository) GetFiltered(f Filter) []Transaction {
 	var filtered []Transaction
 	for _, tx := range r.data {
+		if tx.UserID != f.UserID {
+			continue
+		}
 		if f.Type != nil && tx.Type != *f.Type {
 			continue
 		}

@@ -14,10 +14,10 @@ func NewService(repo Repository) *Service {
 	}
 }
 
-func (s *Service) GetBalance() float64 {
+func (s *Service) GetBalance(userID int) float64 {
 	var balance float64
 
-	for _, t := range s.repo.GetAll() {
+	for _, t := range s.repo.GetFiltered(Filter{UserID: userID}) {
 		if t.Type == Incoming {
 			balance += t.Amount
 		}
@@ -40,15 +40,17 @@ func (s *Service) AddTransaction(t Transaction) (Transaction, error) {
 	return saved, nil
 }
 
-func (s *Service) GetAllByType(tType TransactionType) []Transaction {
+func (s *Service) GetAllByType(tType TransactionType, userID int) []Transaction {
 	filter := Filter{
-		Type: &tType,
+		UserID: userID,
+		Type:   &tType,
 	}
 	return s.repo.GetFiltered(filter)
 }
 
-func (s *Service) GetAllByCategory(category string) []Transaction {
+func (s *Service) GetAllByCategory(category string, userID int) []Transaction {
 	filter := Filter{
+		UserID:   userID,
 		Category: &category,
 	}
 	return s.repo.GetFiltered(filter)
