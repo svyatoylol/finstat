@@ -1,40 +1,39 @@
 package commands
 
 import (
+	"context"
 	"fin-stat/transaction"
 	"fmt"
 	"strconv"
 )
 
-func HandeleAddTransaction(cmd ParsedCommand, txType transaction.TransactionType, svc *transaction.Service) {
-	if len(cmd.Args) < 2 {
-		fmt.Println("Invalid number of arguments for Add_Transaction command")
-		fmt.Println("usage: <amount> <category>")
+func handleAddTransaction(ctx context.Context, args []string, txType transaction.TransactionType, svc *transaction.Service, sess *Session) {
+	if len(args) < 2 {
+		fmt.Println("usage: Add_Incoming|Add_Outgoing <amount> <category>")
 		return
 	}
 
-	amount, err := strconv.ParseFloat(cmd.Args[0], 64)
+	amount, err := strconv.ParseFloat(args[0], 64)
 	if err != nil {
-		fmt.Println("Invalid amount:", cmd.Args[0])
+		fmt.Println("invalid amount:", args[0])
 		return
 	}
 
-	t := transaction.Transaction{
+	saved, err := svc.AddTransaction(ctx, transaction.Transaction{
+		UserID:   sess.UserID,
 		Type:     txType,
 		Amount:   amount,
-		Category: cmd.Args[1],
-	}
-
-	saved, err := svc.AddTransaction(t)
+		Category: args[1],
+	})
 	if err != nil {
-		fmt.Println("error:", err)
+		printError(err)
 		return
 	}
 
-	fmt.Println("Added transaction #", saved.ID)
+	fmt.Printf("Added transaction #%d\n", saved.ID)
 }
 
-func handleDeleteTransaction(args []string, svc *transaction.Service, sess *Session) {
+func handleDeleteTransaction(ctx context.Context, args []string, svc *transaction.Service, sess *Session) {
 	if len(args) < 1 {
 		fmt.Println("usage: Delete_Transaction <id>")
 		return
@@ -42,19 +41,19 @@ func handleDeleteTransaction(args []string, svc *transaction.Service, sess *Sess
 
 	id, err := strconv.Atoi(args[0])
 	if err != nil {
-		fmt.Println("Invalid id:", args[0])
+		fmt.Println("invalid id:", args[0])
 		return
 	}
 
-	if err := svc.DeleteTransaction(sess.UserID, id); err != nil {
-		fmt.Println("error:", err)
+	if err := svc.DeleteTransaction(ctx, sess.UserID, id); err != nil {
+		printError(err)
 		return
 	}
 
-	fmt.Println("Deleted transaction #", id)
+	fmt.Printf("Deleted transaction #%d\n", id)
 }
 
-func handleEditTransaction(args []string, svc *transaction.Service, sess *Session) {
+func handleEditTransaction(ctx context.Context, args []string, svc *transaction.Service, sess *Session) {
 	if len(args) < 3 {
 		fmt.Println("usage: Edit_Transaction <id> <amount> <category>")
 		return
@@ -72,20 +71,20 @@ func handleEditTransaction(args []string, svc *transaction.Service, sess *Sessio
 		return
 	}
 
-	existing, ok := svc.GetByID(sess.UserID, id)
-	if !ok {
-		fmt.Println("transaction not found:", id)
+	existing, err := svc.GetByID(ctx, sess.UserID, id)
+	if err != nil {
+		printError(err)
 		return
 	}
 
 	existing.Amount = amount
 	existing.Category = args[2]
 
-	updated, err := svc.UpdateTransaction(sess.UserID, existing)
+	updated, err := svc.UpdateTransaction(ctx, sess.UserID, existing)
 	if err != nil {
-		fmt.Println("error:", err)
+		printError(err)
 		return
 	}
 
-	fmt.Println("Updated transaction #", updated.ID)
+	fmt.Printf("Updated transaction #%d\n", updated.ID)
 }

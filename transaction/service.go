@@ -1,7 +1,14 @@
 package transaction
 
 import (
+	"context"
 	"errors"
+	"fmt"
+)
+
+var (
+	ErrInvalidAmount = errors.New("amount must be positive")
+	ErrInvalidType   = errors.New("invalid transaction type")
 )
 
 type Service struct {
@@ -9,67 +16,69 @@ type Service struct {
 }
 
 func NewService(repo Repository) *Service {
-	return &Service{
-		repo: repo,
-	}
+	return &Service{repo: repo}
 }
 
-func (s *Service) GetBalance(userID int) float64 {
-	var balance float64
+func validate(t Transaction) error {
+	if t.Amount <= 0 {
+		return ErrInvalidAmount
+	}
+	if t.Type != Incoming && t.Type != Outgoing {
+		return ErrInvalidType
+	}
+	return nil
+}
 
-	for _, t := range s.repo.GetFiltered(Filter{UserID: userID}) {
-		if t.Type == Incoming {
+func (s *Service) GetBalance(ctx context.Context, userID int) (float64, error) {
+	txs, err := s.repo.GetFiltered(ctx, Filter{UserID: userID})
+	if err != nil {
+		return 0, fmt.Errorf("get balance: %w", err)
+	}
+
+	var balance float64
+	for _, t := range txs {
+		switch t.Type {
+		case Incoming:
 			balance += t.Amount
-		}
-		if t.Type == Outgoing {
+		case Outgoing:
 			balance -= t.Amount
 		}
 	}
-	return balance
+	return balance, nil
 }
 
-func (s *Service) AddTransaction(t Transaction) (Transaction, error) {
-	if t.Amount <= 0 {
-		return Transaction{}, errors.New("amount must be positive")
+func (s *Service) AddTransaction(ctx context.Context, t Transaction) (Transaction, error) {
+	if err := validate(t); err != nil {
+		return Transaction{}, err
 	}
-	if t.Type != Incoming && t.Type != Outgoing {
-		return Transaction{}, errors.New("invalid transaction type")
-	}
-
-	saved := s.repo.Add(t)
-	return saved, nil
+	return s.repo.Add(ctx, t)
 }
 
-func (s *Service) GetAllByType(tType TransactionType, userID int) []Transaction {
-	filter := Filter{
+func (s *Service) GetAllByType(ctx context.Context, userID int, tType TransactionType) ([]Transaction, error) {
+	return s.repo.GetFiltered(ctx, Filter{
 		UserID: userID,
 		Type:   &tType,
-	}
-	return s.repo.GetFiltered(filter)
+	})
 }
 
-func (s *Service) GetAllByCategory(category string, userID int) []Transaction {
-	filter := Filter{
+func (s *Service) GetAllByCategory(ctx context.Context, userID int, category string) ([]Transaction, error) {
+	return s.repo.GetFiltered(ctx, Filter{
 		UserID:   userID,
 		Category: &category,
-	}
-	return s.repo.GetFiltered(filter)
+	})
 }
 
-func (s *Service) DeleteTransaction(userID int, id int) error {
-	return s.repo.Delete(userID, id)
+func (s *Service) DeleteTransaction(ctx context.Context, userID, id int) error {
+	return s.repo.Delete(ctx, userID, id)
 }
 
-func (s *Service) UpdateTransaction(userID int, t Transaction) (Transaction, error) {
-	if t.Amount <= 0 {
-		return Transaction{}, errors.New("amount must be positive")
+func (s *Service) UpdateTransaction(ctx context.Context, userID int, t Transaction) (Transaction, error) {
+	if err := validate(t); err != nil {
+		return Transaction{}, err
 	}
-	if t.Type != Incoming && t.Type != Outgoing {
-		return Transaction{}, errors.New("invalid transaction type")
-	}
-	return s.repo.Update(userID, t)
+	return s.repo.Update(ctx, userID, t)
 }
 
-func (s *Service) GetByID(userID int, id int) (Transaction, bool) {
-	return s.repo.GetByID(userID, id)
+func (s *Service) GetByID(ctx context.Context, userID, id int) (Transaction, error) {
+	return s.repo.GetByID(ctx, userID, id)
 }

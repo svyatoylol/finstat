@@ -2,14 +2,43 @@ package main
 
 import (
 	"bufio"
+	"context"
+	"database/sql"
 	"fin-stat/commands"
 	"fin-stat/transaction"
 	"fmt"
+	"log"
 	"os"
+	"time"
 )
 
+const commandTimeout = 5 * time.Second
+
 func main() {
-	repo := transaction.NewMemoryRepository()
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		dsn = "postgres://finstat:finstat@localhost:5432/finstat?sslmode=disable"
+	}
+
+	db, err := sql.Open("postgres", dsn)
+	if err != nil {
+		log.Fatalf("open db: %v", err)
+	}
+	defer db.Close()
+
+	db.SetMaxOpenConns(10)
+	db.SetMaxIdleConns(5)
+	db.SetConnMaxLifetime(30 * time.Minute)
+
+	// sql.Open соединение не устанавливает, поэтому проверяем его явно
+	pingCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	err = db.PingContext(pingCtx)
+	cancel()
+	if err != nil {
+		log.Fatalf("ping db: %v", err)
+	}
+
+	repo := transaction.NewPostgresRepository(db)
 	svc := transaction.NewService(repo)
 	sess := commands.NewSession(0)
 
@@ -21,7 +50,15 @@ func main() {
 		if cmd.Name == "exit" {
 			break
 		}
-		commands.ExecuteCommand(cmd, svc, sess)
+
+		ctx, cancel := context.WithTimeout(context.Background(), commandTimeout)
+		commands.ExecuteCommand(ctx, cmd, svc, sess)
+		cancel() // без defer: мы внутри цикла
+
 		fmt.Println("Enter a command:")
+	}
+
+	if err := scanner.Err(); err != nil {
+		log.Printf("read input: %v", err)
 	}
 }
