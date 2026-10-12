@@ -10,7 +10,7 @@ var _ Repository = (*memoryRepository)(nil)
 type memoryRepository struct {
 	mu     sync.Mutex
 	data   []Transaction
-	nextID int
+	nextID int64
 }
 
 func NewMemoryRepository() *memoryRepository {
@@ -27,7 +27,7 @@ func (r *memoryRepository) Add(_ context.Context, t Transaction) (Transaction, e
 	return t, nil
 }
 
-func (r *memoryRepository) GetByID(_ context.Context, userID, id int) (Transaction, error) {
+func (r *memoryRepository) GetByID(_ context.Context, userID, id int64) (Transaction, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -44,6 +44,10 @@ func (r *memoryRepository) GetFiltered(_ context.Context, f Filter) ([]Transacti
 	defer r.mu.Unlock()
 
 	var filtered []Transaction
+	limit := f.Limit
+	if limit <= 0 {
+		limit = DefaultPageSize
+	}
 	for _, tx := range r.data {
 		if tx.UserID != f.UserID {
 			continue
@@ -54,12 +58,36 @@ func (r *memoryRepository) GetFiltered(_ context.Context, f Filter) ([]Transacti
 		if f.Category != nil && tx.Category != *f.Category {
 			continue
 		}
+		if f.AfterID > 0 && tx.ID <= f.AfterID {
+			continue
+		}
 		filtered = append(filtered, tx)
+		if len(filtered) >= limit {
+			break
+		}
 	}
 	return filtered, nil
 }
 
-func (r *memoryRepository) Delete(_ context.Context, userID, id int) error {
+func (r *memoryRepository) GetBalance(_ context.Context, userID int64) (float64, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	var balance float64
+	for _, tx := range r.data {
+		if tx.UserID != userID {
+			continue
+		}
+		if tx.Type == Incoming {
+			balance += tx.Amount
+		} else if tx.Type == Outgoing {
+			balance -= tx.Amount
+		}
+	}
+	return balance, nil
+}
+
+func (r *memoryRepository) Delete(_ context.Context, userID, id int64) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -72,7 +100,7 @@ func (r *memoryRepository) Delete(_ context.Context, userID, id int) error {
 	return ErrNotFound
 }
 
-func (r *memoryRepository) Update(_ context.Context, userID int, t Transaction) (Transaction, error) {
+func (r *memoryRepository) Update(_ context.Context, userID int64, t Transaction) (Transaction, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 

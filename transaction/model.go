@@ -8,8 +8,8 @@ const (
 )
 
 type Transaction struct {
-	ID       int
-	UserID   int
+	ID       int64
+	UserID   int64
 	Type     TransactionType
 	Amount   float64
 	Category string

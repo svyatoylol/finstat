@@ -1,10 +1,10 @@
 package commands
 
 type Session struct {
-	UserID   int
+	UserID   int64
 	loggedIn bool
 }
 
-func NewSession(userID int) *Session {
-	return &Session{}
+func NewSession(userID int64) *Session {
+	return &Session{UserID: userID}
 }

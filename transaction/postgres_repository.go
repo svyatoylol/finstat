@@ -39,7 +39,7 @@ func (r *PostgresRepository) Add(ctx context.Context, t Transaction) (Transactio
 	return out, nil
 }
 
-func (r *PostgresRepository) GetByID(ctx context.Context, userID, id int) (Transaction, error) {
+func (r *PostgresRepository) GetByID(ctx context.Context, userID, id int64) (Transaction, error) {
 	const q = `SELECT ` + selectColumns + ` FROM transactions WHERE id = $1 AND user_id = $2`
 
 	t, err := scanTransaction(r.db.QueryRowContext(ctx, q, id, userID))
@@ -64,7 +64,17 @@ func (r *PostgresRepository) GetFiltered(ctx context.Context, f Filter) ([]Trans
 		args = append(args, *f.Category)
 		query += fmt.Sprintf(" AND category = $%d", len(args))
 	}
+	if f.AfterID > 0 {
+		args = append(args, f.AfterID)
+		query += fmt.Sprintf(" AND id > $%d", len(args))
+	}
 	query += " ORDER BY id"
+	limit := f.Limit
+	if limit <= 0 {
+		limit = DefaultPageSize
+	}
+	args = append(args, limit)
+	query += fmt.Sprintf(" LIMIT $%d", len(args))
 
 	rows, err := r.db.QueryContext(ctx, query, args...)
 	if err != nil {
@@ -86,7 +96,21 @@ func (r *PostgresRepository) GetFiltered(ctx context.Context, f Filter) ([]Trans
 	return results, nil
 }
 
-func (r *PostgresRepository) Delete(ctx context.Context, userID, id int) error {
+func (r *PostgresRepository) GetBalance(ctx context.Context, userID int64) (float64, error) {
+	const q = `SELECT COALESCE(SUM(CASE
+		WHEN type = 'incoming' THEN amount
+		WHEN type = 'outgoing' THEN -amount
+		ELSE 0
+	END), 0) FROM transactions WHERE user_id = $1`
+
+	var balance float64
+	if err := r.db.QueryRowContext(ctx, q, userID).Scan(&balance); err != nil {
+		return 0, fmt.Errorf("get balance: %w", err)
+	}
+	return balance, nil
+}
+
+func (r *PostgresRepository) Delete(ctx context.Context, userID, id int64) error {
 	const q = `DELETE FROM transactions WHERE id = $1 AND user_id = $2`
 
 	res, err := r.db.ExecContext(ctx, q, id, userID)
@@ -103,7 +127,7 @@ func (r *PostgresRepository) Delete(ctx context.Context, userID, id int) error {
 	return nil
 }
 
-func (r *PostgresRepository) Update(ctx context.Context, userID int, t Transaction) (Transaction, error) {
+func (r *PostgresRepository) Update(ctx context.Context, userID int64, t Transaction) (Transaction, error) {
 	const q = `UPDATE transactions SET type = $1, amount = $2, category = $3
 	           WHERE id = $4 AND user_id = $5
 	           RETURNING ` + selectColumns

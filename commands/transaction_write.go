@@ -39,7 +39,7 @@ func handleDeleteTransaction(ctx context.Context, args []string, svc *transactio
 		return
 	}
 
-	id, err := strconv.Atoi(args[0])
+	id, err := strconv.ParseInt(args[0], 10, 64)
 	if err != nil {
 		fmt.Println("invalid id:", args[0])
 		return
@@ -59,7 +59,7 @@ func handleEditTransaction(ctx context.Context, args []string, svc *transaction.
 		return
 	}
 
-	id, err := strconv.Atoi(args[0])
+	id, err := strconv.ParseInt(args[0], 10, 64)
 	if err != nil {
 		fmt.Println("invalid id:", args[0])
 		return

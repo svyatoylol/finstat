@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"database/sql"
+	_ "embed"
 	"fin-stat/commands"
 	"fin-stat/transaction"
 	"fmt"
@@ -13,6 +14,9 @@ import (
 )
 
 const commandTimeout = 5 * time.Second
+
+//go:embed migrations/001_init.sql
+var initialMigration string
 
 func main() {
 	dsn := os.Getenv("DATABASE_URL")
@@ -36,6 +40,13 @@ func main() {
 	cancel()
 	if err != nil {
 		log.Fatalf("ping db: %v", err)
+	}
+
+	migrationCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	_, err = db.ExecContext(migrationCtx, initialMigration)
+	cancel()
+	if err != nil {
+		log.Fatalf("apply migrations: %v", err)
 	}
 
 	repo := transaction.NewPostgresRepository(db)
