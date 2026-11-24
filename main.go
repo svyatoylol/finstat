@@ -1,15 +1,14 @@
 package main
 
 import (
-	"bufio"
 	"context"
 	"database/sql"
 	_ "embed"
-	"fin-stat/commands"
+	"fin-stat/api"
 	"fin-stat/transaction"
-	"fmt"
 	"log"
 	"os"
+	"net/http"
 	"time"
 )
 
@@ -51,25 +50,22 @@ func main() {
 
 	repo := transaction.NewPostgresRepository(db)
 	svc := transaction.NewService(repo)
-	sess := commands.NewSession(0)
-
-	scanner := bufio.NewScanner(os.Stdin)
-	fmt.Println("Enter commands (type 'exit' to quit):")
-
-	for scanner.Scan() {
-		cmd := commands.ParseCommand(scanner.Text())
-		if cmd.Name == "exit" {
-			break
-		}
-
-		ctx, cancel := context.WithTimeout(context.Background(), commandTimeout)
-		commands.ExecuteCommand(ctx, cmd, svc, sess)
-		cancel() // без defer: мы внутри цикла
-
-		fmt.Println("Enter a command:")
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
 	}
 
-	if err := scanner.Err(); err != nil {
-		log.Printf("read input: %v", err)
+	server := &http.Server{
+		Addr:              ":" + port,
+		Handler:           api.NewHandler(svc),
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       commandTimeout,
+		WriteTimeout:      commandTimeout,
+		IdleTimeout:       60 * time.Second,
+	}
+
+	log.Printf("REST API listening on http://localhost:%s", port)
+	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		log.Fatalf("start HTTP server: %v", err)
 	}
 }
