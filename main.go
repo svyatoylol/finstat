@@ -3,19 +3,16 @@ package main
 import (
 	"context"
 	"database/sql"
-	_ "embed"
 	"fin-stat/api"
+	"fin-stat/migrations"
 	"fin-stat/transaction"
 	"log"
-	"os"
 	"net/http"
+	"os"
 	"time"
 )
 
 const commandTimeout = 5 * time.Second
-
-//go:embed migrations/001_init.sql
-var initialMigration string
 
 func main() {
 	dsn := os.Getenv("DATABASE_URL")
@@ -42,7 +39,7 @@ func main() {
 	}
 
 	migrationCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	_, err = db.ExecContext(migrationCtx, initialMigration)
+	_, err = db.ExecContext(migrationCtx, migrations.InitialMigration)
 	cancel()
 	if err != nil {
 		log.Fatalf("apply migrations: %v", err)

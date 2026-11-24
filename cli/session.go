@@ -1,4 +1,4 @@
-package commands
+package cli
 
 type Session struct {
 	UserID   int64

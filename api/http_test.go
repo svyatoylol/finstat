@@ -51,6 +51,49 @@ func TestTransactionsRequireUserID(t *testing.T) {
 	}
 }
 
+func TestListTransactionsFiltering(t *testing.T) {
+	service := transaction.NewService(transaction.NewMemoryRepository())
+	handler := NewHandler(service)
+
+	request(t, handler, http.MethodPost, "/transactions", `{"type":"incoming","amount":1000,"category":"salary"}`)
+	request(t, handler, http.MethodPost, "/transactions", `{"type":"incoming","amount":200,"category":"bonus"}`)
+	request(t, handler, http.MethodPost, "/transactions", `{"type":"outgoing","amount":50,"category":"food"}`)
+	request(t, handler, http.MethodPost, "/transactions", `{"type":"outgoing","amount":300,"category":"rent"}`)
+
+	// Filter by both type AND category
+	both := request(t, handler, http.MethodGet, "/transactions?type=incoming&category=salary", "")
+	if both.Code != http.StatusOK {
+		t.Fatalf("status: got %d, want %d", both.Code, http.StatusOK)
+	}
+	var bothList []transactionResponse
+	decode(t, both, &bothList)
+	if len(bothList) != 1 || bothList[0].Category != "salary" || bothList[0].Type != transaction.Incoming {
+		t.Fatalf("expected 1 incoming salary, got %+v", bothList)
+	}
+
+	// Filter by type only
+	typeOnly := request(t, handler, http.MethodGet, "/transactions?type=outgoing", "")
+	var typeList []transactionResponse
+	decode(t, typeOnly, &typeList)
+	if len(typeList) != 2 {
+		t.Fatalf("expected 2 outgoing transactions, got %d", len(typeList))
+	}
+
+	// Filter by category only
+	catOnly := request(t, handler, http.MethodGet, "/transactions?category=bonus", "")
+	var catList []transactionResponse
+	decode(t, catOnly, &catList)
+	if len(catList) != 1 || catList[0].Amount != 200 {
+		t.Fatalf("expected 1 bonus transaction, got %+v", catList)
+	}
+
+	// Invalid type
+	invalid := request(t, handler, http.MethodGet, "/transactions?type=unknown", "")
+	if invalid.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for invalid type, got %d", invalid.Code)
+	}
+}
+
 func request(t *testing.T, handler http.Handler, method, path, body string) *httptest.ResponseRecorder {
 	t.Helper()
 	req := httptest.NewRequest(method, path, bytes.NewBufferString(body))

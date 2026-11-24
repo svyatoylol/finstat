@@ -128,19 +128,26 @@ func (s *Server) listTransactions(w http.ResponseWriter, r *http.Request, userID
 		return
 	}
 
-	var transactions []transaction.Transaction
+	filter := transaction.Filter{
+		UserID:  userID,
+		Limit:   limit,
+		AfterID: afterID,
+	}
+
 	if typeValue := r.URL.Query().Get("type"); typeValue != "" {
 		txType := transaction.TransactionType(typeValue)
 		if txType != transaction.Incoming && txType != transaction.Outgoing {
 			writeError(w, http.StatusBadRequest, transaction.ErrInvalidType)
 			return
 		}
-		transactions, err = s.service.GetAllByTypePage(r.Context(), userID, txType, limit, afterID)
-	} else if category := r.URL.Query().Get("category"); category != "" {
-		transactions, err = s.service.GetAllByCategoryPage(r.Context(), userID, category, limit, afterID)
-	} else {
-		transactions, err = s.service.GetAllPage(r.Context(), userID, limit, afterID)
+		filter.Type = &txType
 	}
+
+	if category := r.URL.Query().Get("category"); category != "" {
+		filter.Category = &category
+	}
+
+	transactions, err := s.service.GetFiltered(r.Context(), filter)
 	if err != nil {
 		s.writeServiceError(w, err)
 		return

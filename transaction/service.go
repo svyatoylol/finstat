@@ -49,6 +49,10 @@ func (s *Service) GetAllByType(ctx context.Context, userID int64, tType Transact
 	return s.GetAllByTypePage(ctx, userID, tType, 0, 0)
 }
 
+func (s *Service) GetFiltered(ctx context.Context, f Filter) ([]Transaction, error) {
+	return s.repo.GetFiltered(ctx, f)
+}
+
 func (s *Service) GetAllPage(ctx context.Context, userID int64, limit int, afterID int64) ([]Transaction, error) {
 	return s.repo.GetFiltered(ctx, Filter{
 		UserID:  userID,
